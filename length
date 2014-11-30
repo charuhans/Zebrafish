@@ -1,0 +1,17 @@
+dir1 = getDirectory("C:\\Users\\joseph\\Desktop\\dr shah\\isvSkeleton");
+
+//dir1 = getDirectory("C:\\Users\\joseph\\Desktop\\data\\PTK\\segmentation\\original\\processed\\processedOriginal\\skeleton\\0.7");
+//dir2 = getDirectory("C:\\Users\\joseph\\Desktop\\Charu Research\\Trifloxystrobin - for caudal vein measurements\\all\\processed");
+list = getFileList(dir1);
+ 
+for (i=0; i<list.length; i++) {
+  	if (endsWith(list[i], ".tif")) {
+    	open(dir1 + list[i]);
+	//run("8-bit");
+	//run("Anisotropic Diffusion 2D", "number=20 smoothings=1 keep=20 a1=0.50 a2=0.90 dt=20 edge=5");
+	run("CalculateLengthSkeleton ", "prune=none");
+
+    	close();
+	close();
+  }
+}
