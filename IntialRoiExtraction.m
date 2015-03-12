@@ -43,7 +43,7 @@ function IntialRoiExtraction( pathData, saveWholeBW)
        dataName = strcat(pathData, '\\', imagefiles(idx).name);   
        MIJ.run('Open...', strcat('path=[', dataName, ']'));
        MIJ.run('Enhance Contrast...', 'saturated=[3] normalize');
-       MIJ.run('Gaussian Blur...', 'sigma=[10]');
+       MIJ.run('Gaussian Blur...', 'sigma=[8]');
        %MIJ.run('Enhance Contrast...', 'saturated = [10] normalize');
        MIJ.run('Auto Threshold', 'method=Triangle background=Light calculate black');
        MIJ.run('Convert to Mask');
