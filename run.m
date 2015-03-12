@@ -19,7 +19,6 @@ function run(fileName, pathData, pathMIJI)
     mkdir('isv');
     mkdir('isvX');
     mkdir('isvAll');
-    mkdir('theISV');
     mkdir('wholeSegBW');
     mkdir('initialSegBW');
     mkdir('cv');
@@ -35,8 +34,8 @@ function run(fileName, pathData, pathMIJI)
     saveSkeleton = strcat(currentFolder , '\', 'skeleton','\'); 
     saveISVSkeleton = strcat(currentFolder , '\', 'isvSkeleton','\'); 
     saveISV = strcat(currentFolder , '\', 'isv','\');
-    saveISVX = strcat(currentFolder , '\', 'isv','\');
-    saveISVAll = strcat(currentFolder , '\', 'isv','\');
+    saveISVX = strcat(currentFolder , '\', 'isvX','\');
+    saveISVAll = strcat(currentFolder , '\', 'isvAll','\');
     saveISVClean = strcat(currentFolder , '\', 'isvClean','\');
     saveCV = strcat(currentFolder , '\', 'cv','\');
     saveCVBW = strcat(currentFolder , '\', 'cvBW','\');
