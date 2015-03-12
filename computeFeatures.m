@@ -1,21 +1,48 @@
-function computeFeatures( saveISVBW)   
-fName = 'result.txt';         %# A file name
-fid = fopen(fName,'w');            %# Open the file
+function computeFeatures( saveISVBW, saveSkeletonISV) 
+% Function Name:
+%    computeFeatures
+%
+% Description:
+%   This function computes the features of ISV
+% 
+%
+% Inputs:
+%   saveISVBW    : Path where binsary ISV images are located
+%   saveSkeletonISV : Path where ISV skeleton images are located
+%
+% Outputs:
+%   success: If images were saved.
 
-warning('off','all');
-warning;
-close all;
-cd(saveISVBW);
-imagefiles = dir('*.tif');   
-nfiles = length(imagefiles);    % Number of files found
+    if nargin < 2
+        disp('Need path as an argument');
+        return;
+    end
+    warning('off','all');
+    warning;
+    close all;
+    imagefiles  = dir([pathData '*.tif']);      
+    nfiles = length(imagefiles); 
+    
+    if nfiles < 1
+         message('Number of files found is 0');
+         message('Check if file xtension is tif');
+         message('Check if path for data files is correct. Path given:' + pathData);
+         return;
+    end
+    
+    fName = 'result.txt';         %# A file name
+    fid = fopen(fName,'w');            %# Open the file
+
 
 for ii=1:nfiles
-    areaCol = 0;
-    mind = 0;
-    area = 0;
-    count = 0;
-   currentfilename = imagefiles(ii).name;
+   areaCol = 0; minDist = 0;
+   count = 0;
+   areaColSkel = 0;
+   currentfilename = strcat(saveISVBW, '\\', imagefiles(idx).name);
    dataImage = imread(currentfilename);
+    
+   currentfilename = strcat(saveSkeletonISV, '\\', imagefiles(idx).name);
+   skeletonImage = imread(currentfilename);
 
    bw = im2bw(dataImage,0.01);
    stats = regionprops(bw, 'All');
@@ -46,11 +73,24 @@ for ii=1:nfiles
             val = 0;
            
         end
-            mind = mind + val;
+            minDist = minDist + val;
     end
-    result = [mind/length(stats) areaCol/length(stats) areaCol length(stats)];       
+    
+   bw = im2bw(skeletonImage,0.01);
+   statsSkel = regionprops(bw, 'All');
+
+   % find area of each blob for skeleton
+   for region = 1 : length(statsSkel)
+       area = statsSkel(region).Area;
+       if(area < 100)
+        areaColSkel =  areaColSkel + area;
+        count = count + 1;
+       end
+
+   end
+   result = [minDist/length(stats) areaCol/length(stats) areaColSkel/length(statsSkel) areaCol length(stats)];       
    fprintf(fid, '%s,', currentfilename);
-   fprintf(fid, '%d, %d, %d, %d\n', result);
+   fprintf(fid, '%d, %d, %d, %d, %d\n', result);
   
 end
 fclose(fid);

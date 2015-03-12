@@ -1,79 +1,89 @@
-function roi(pathAnatomyData, pathAnatomyBW, pathIsolateData, pathIsolateBW)
+function ROI(saveAnatomyData, saveAnatomyBW, saveIsolateData, saveIsolateBW)
+% Function Name:
+%    ROI
+%
+% Description:
+%   This function does the segmentation of whole embryo
+% 
+% Pre requisite:
+%   Expects MIJI in path of matlab
+%
+% Inputs:
+%   saveAnatomyData: Path where images are located
+%   saveAnatomyBW  : Path where to save images
+%   saveIsolateData: Path to individual zebrafish images
+%   saveIsolateBW  : Path to individual zebrafish binary images
 
-close all;
-cd(pathAnatomyBW);
-imagefiles = dir('*.tif'); 
-nfiles = length(imagefiles);    % Number of files found
-
+    if nargin < 4
+        error('Need path as an argument');
+    end 
+    close all;
+    imagefiles  = dir([saveAnatomyBW '*.tif']);   
+    nfiles = length(imagefiles); 
+    
+    if nfiles < 1
+         disp('Number of files found is 0');
+         disp('Check if file xtension is tif');
+         disp('Check if path for data files is correct. Path given:' + saveAnatomyBW);
+         error('Program cannot be executed');
+    end
  
-    for ii=1:nfiles
-       currentfilename = imagefiles(ii).name;
-       currentimage = imread(currentfilename);
-       newFileName = strcat(pathAnatomyData,'\', currentfilename);
+    for idx = 1:nfiles
+        currentfilename = strcat(saveAnatomyBW, '\', imagefiles(idx).name);     
+        currentimage = imread(currentfilename);
+        newFileName = strcat(saveAnatomyData, '\', imagefiles(idx).name);
 
-       newImage = imread(newFileName);
-        %BW = currentimage;
+        newImage = imread(newFileName);
         BW = im2bw(currentimage,0.01);
         stats = regionprops(BW, 'Area', 'PixelIdxList', 'PixelList', 'BoundingBox', 'Orientation');
         width = stats(1).BoundingBox(1,3);
         neMin = 1;
-
+        
         for region = 1 : length(stats)
             if(width < stats(region).BoundingBox(1,3))
                 width = stats(region).BoundingBox(1,3);
                 neMin = region;
             end
         end
+        
         for region = 1 : length(stats)
             if(region ~= neMin)
-                X = stats(region).PixelList(:,1);
-                Y = stats(region).PixelList(:,2);
-                
-                 for x = 1:  size(X,1)
-                     newImage(Y(x),X(x)) = 0;   
-                     currentimage(Y(x),X(x)) = 0;  
-                 end
+%                 X = stats(region).PixelList(:,1);
+%                 Y = stats(region).PixelList(:,2);
+%                  for x = 1:  size(X,1)
+%                      newImage(Y(x),X(x)) = 0;   
+%                      currentimage(Y(x),X(x)) = 0;  
+%                  end
+                 newImage(Y, X)  = 0;
+                 currentimage(Y, X)  = 0;
             end
         end
-        
         newX = int32(stats(neMin).BoundingBox(1,1));
         newY = int32(stats(neMin).BoundingBox(1,2));
         newWidth = int32(stats(neMin).BoundingBox(1,3));
         newHeight = int32(stats(neMin).BoundingBox(1,4));
-        %Rot
         newDimenssions = [isValid(newX, -75, 0), isValid(newY, -75, 0), isValid(newWidth , 160, size(currentimage,2)), isValid(newHeight, 120, size(currentimage,1))];
-        %PTK
-        %newDimenssions = [isValid(newX, -50, 0), isValid(newY, -50, 0), isValid(newWidth , 125, size(currentimage,2)), isValid(newHeight, 80, size(currentimage,1))];
-
         subImage = imcrop(newImage, newDimenssions);
         subImageBW = imcrop(currentimage, newDimenssions);
-        %subImage = imcrop(newImage, stats(neMin).BoundingBox);
-        %subImageBW = imcrop(currentimage, stats(neMin).BoundingBox);
-        %imshow(subImage);
-        %if(width > 450)
-            newImageNameWriteBW = strcat(pathIsolateBW,'\', currentfilename);
-            newImageNameWrite = strcat(pathIsolateData,'\', currentfilename);
-            imwrite(subImageBW,newImageNameWriteBW,'tif','Compression','none');
-            imwrite(subImage,newImageNameWrite,'tif','Compression','none');
-       % end
-    end
         
-     
+        newImageNameWriteBW = strcat(saveIsolateBW,'\', imagefiles(idx).name);
+        newImageNameWrite = strcat(saveIsolateData,'\', imagefiles(idx).name);
+        
+        imwrite(subImageBW,newImageNameWriteBW,'tif','Compression','none');
+        imwrite(subImage,newImageNameWrite,'tif','Compression','none');
+    end
 end
 
 
 function newValue = isValid(value, range, limit)
-
     if(range < 0 )
         cond = value - (value + range);
     else
         cond = (value + range) - range;
-    end
-    
+    end    
     if(cond < limit)
         range = range - 1;
     end
     newValue = value + range;
-
 end
          

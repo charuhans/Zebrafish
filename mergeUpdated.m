@@ -1,6 +1,6 @@
-function merge(saveISV, saveISVBW)  
+function mergeUpdated(saveCleanISV, saveISV, saveISVX, saveISVAll, saveISVBW)   
 % Function Name:
-%    merge
+%    mergeUpdated
 %
 % Description:
 %   This function removes head and tail region
@@ -10,95 +10,169 @@ function merge(saveISV, saveISVBW)
 %   saveISV     : ISV image path
 %   saveISVBW   : Binary ISV image path
 
-    if nargin < 3
-        disp('Need path as an argument');
-        return;
+    if nargin < 5
+        error('Need path as an argument');
     end 
-    warning('off','all');
+    warning('off', 'all');
     warning;
     close all;
-    imagefiles  = dir([saveISV '*.tif']);      
-    nfiles = length(imagefiles); 
+    
+    imagefiles  = dir([saveCleanISV '*.tif']);      
+    nfiles = length(imagefiles);    
     
     if nfiles < 1
-         message('Number of files found is 0');
-         message('Check if file xtension is tif');
-         message('Check if path for data files is correct. Path given:' + saveISV);
-         return;
-    end    
+         disp('Number of files found is 0');
+         disp('Check if file xtension is tif');
+         disp('Check if path for data files is correct. Path given:' + saveCleanISV);
+         error('Program cannot be executed');
+    end
      
     for ii=1:nfiles
-       colDist = [];
-       colAngle = [];
-       colArea = [];
-       minDists = [];
-       minDistsIx = [];
-       currentfilename = strcat(saveISV, '\', imagefiles(ii).name);     
-       dataImage = imread(currentfilename);  
-       level = graythresh(dataImage);
-
-       bw = im2bw(dataImage,level);
-       BW2 = bwareaopen(bw, 20);
+        colDist = []; colAngle = []; colArea = []; minDists = []; minDistsIx = [];
+        currentfilename = strcat(saveCleanISV, '\', imagefiles(ii).name);     
+        dataImage = imread(currentfilename);        
+        [outImY, outIm, outImX] = Filter2D(dataImage);
+        
+        currentfilenameISV = strcat(saveISV, '\', imagefiles(ii).name);  
+        A = uint8(255*mat2gray(outImY));
+        imwrite(A, currentfilenameISV ,'Compression','none');
+        
+        currentfilenameX = strcat(saveISVX, '\', imagefiles(ii).name);  
+        A = uint8(255*mat2gray(outImX));
+        imwrite(A, currentfilenameX ,'Compression','none');
+        
+        currentfilenameY = strcat(saveISVBW, '\', imagefiles(ii).name); 
+        A = uint8(255*mat2gray(outImY));
+        imwrite(A, currentfilenameY ,'Compression','none');
+        
+        currentfilenameAll = strcat(saveISVAll, '\', imagefiles(ii).name);     
+        A = uint8(255*mat2gray(outIm));
+        imwrite(A, currentfilenameAll ,'Compression','none');        
+         
+        bwY = binarize(currentfilenameY);
+        bwX = binarize(currentfilenameX);
+        bwAll = binarize(currentfilenameAll);   
+                
+        % remove small elements
+        bwY = bwareaopen(bwY, 20);
+        bwX = bwareaopen(bwX, 400);
+        bwAll = bwareaopen(bwAll, 20);
        
-       stats = regionprops(BW2, 'All');
-       % remove the region with high count, its an outlier
+        % apply open/close operation on bwX
+        seLine = strel('line',12,5);
+        bwXOpen = imopen(bwX,seLine);
+        
+        seLine = strel('line',12,5);
+        bwXClose = imclose(bwXOpen,seLine);
+        bwXClose = bwareaopen(bwXClose, 300);
+       
+        % remove region from bwY that are in bwX 
+       [labeledImage, ~] = bwlabel(bwXClose, 8); 
+       stats = regionprops(labeledImage, 'All');
        for region = 1 : length(stats)
-           if(stats(region).Area> 400)
-               BW2(stats(region).PixelList(:,2), stats(region).PixelList(:,1)) = 0;
-           end
+        bwY(labeledImage == region) = 0;           
        end
-       stats = regionprops(BW2, 'All');       
+       
+       % apply close operation on bwX
+       seLine = strel('line',8,90);
+       bwYClose = imclose(bwY,seLine);
+       
+       % apply close operation on bwAll
+       seLine = strel('line',5,90);
+       bwAllClose = imclose(bwAll,seLine);
+       
+       bw = and(bwYClose, bwAllClose);
+       bw = bwareaopen(bw, 50);
+       
+       % remove the region with high count, its an outlier
+       [labeledImage, ~] = bwlabel(bw, 8); 
+       stats = regionprops(labeledImage, 'Area', 'Eccentricity');
+       
+       for region = 1 : length(stats)
+           if(stats(1).Area < 100)
+               bw(labeledImage == 1) = 0;
+           end
+           if(stats(length(stats)).Area < 100)
+               bw(labeledImage == length(stats)) = 0;
+           end
+           if(stats(region).Area > 400)
+               bw(labeledImage == region) = 0;
+           end
+           if(stats(region).Eccentricity < 0.8)
+               bw(labeledImage == region) = 0;
+           end               
+       end
+
+       stats = regionprops(bw, 'All');          
+       % remove the region with high count, its an outlier
        % find the closest regions according to distance between centeroid 
        for region = 1 : length(stats)
           first  = stats(region).Centroid; 
           rowDist = [];
           for inregion = 1 : length(stats)
               dist = pdist2(first, stats(inregion).Centroid);              
-              rowDist = [ rowDist dist];         
-
+              rowDist = [ rowDist dist];     
           end
           colDist = [ colDist; rowDist];
-
        end
 
-          % among obtained centeroid, find slope
-          % if slope is  closer to 1, merge regions
+      % among obtained centeroid, find slope
+      % if slope is  closerto 1, merge regions
 
-          [minDists,minDistsIx] = sort(colDist,2) ;
+      [minDists,minDistsIx] = sort(colDist,2) ;
           
-          if(size(colDist,2) > 3)
+      if(size(colDist,2) > 3)
+          minDists = minDists(:, 2:4);
+          minDistsIx = minDistsIx(:, 2:4);
 
-              minDists = minDists(:, 2:4);
-              minDistsIx = minDistsIx(:, 2:4);
+          %returns slope between two closer centroids and ratio of their areas
+          [colSlope,colAreaRatio]  = findAngleRatio(minDistsIx, stats);
 
-              %returns slope between two closer centroids and ratio of their areas
-              [colSlope,colAreaRatio]  = findAngleRatio(minDistsIx, stats);
+          %returns regions numbers that needs to be merged
+          [image, regionAssociation] = removeOutliers(colSlope, colAreaRatio, minDistsIx, bw, stats);
 
-              %returns regions numbers that needs to be merged
-              [image, regionAssociation] = removeOutliers(colSlope, colAreaRatio, minDistsIx, BW2, stats);
+          %connect these areas that need to be merged
+          image = mergeAreas(regionAssociation, image, stats);
 
-              %connect these areas that need to be merged
-              image = mergeAreas(regionAssociation, image, stats);
-          
-          else
-              image = BW2;
-          end
-           image = bwareaopen(image, 20);
-           stats = regionprops(image, 'All');
-       % remove the region with high count, its an outlier
+      else
+          image = bw;
+      end
+      
+       [labeledImage, ~] = bwlabel(image, 8); 
+       stats = regionprops(labeledImage, 'Area');
        for region = 1 : length(stats)
-           if(stats(region).Area> 400)
-               image(stats(region).PixelList(:,2), stats(region).PixelList(:,1)) = 0;
+           if(stats(region).Area > 400)
+               image(labeledImage == region) = 0;
            end
        end
-          newImageWrite = strcat(saveISVBW, '\', imagefiles(ii).name);
-          imwrite(image,newImageWrite,'tif','Compression','none');
-
+       newImageWrite = strcat(saveISVBW, '\', imagefiles(ii).name);
+       imwrite(image,newImageWrite,'tif','Compression','none');
     end
 end
 
-function [image] = mergeAreas(regionAssociation, image, stats)
+function image = binarize(path)
+% Function Name:
+%    binarize
+%
+% Description:
+%   binarizes image and saves it
+% 
+% Inputs:
+%   path : path to images
 
+    MIJ.run('Open...', strcat('path=[', path, ']'));
+    MIJ.run('Auto Local Threshold', 'method=Niblack radius=15 parameter_1=0 parameter_2=0 white');
+    %MIJ.run('Invert');
+    image = MIJ.getCurrentImage(); 
+    image = uint8(image / 256);
+    image = im2uint8(image*255);
+    imwrite(image,path,'tif','Compression','none');
+    MIJ.run('Close');
+end
+
+
+%merges all the areas that were broken due to image preprocessing
+function [image] = mergeAreas(regionAssociation, image, stats)
 % Function Name:
 %    mergeAreas
 %
@@ -149,20 +223,6 @@ function [image] = mergeAreas(regionAssociation, image, stats)
 end
 
 function [linePts] = getLinePts(pt1, pt2)
-% Function Name:
-%    getLinePts
-%
-% Description:
-%   generate points based on distance between point
-% 
-%
-% Inputs:
-%   pt1 : extreme point 1
-%   pt2 : extreme point 2
-% 
-% Output:
-%   linepts: points on line
-
     nPts = ceil(pdist2(pt1, pt2))*2;
     x1 = pt1(1);
     x2 = pt2(1);
@@ -176,9 +236,9 @@ function [linePts] = getLinePts(pt1, pt2)
     linePts = A((i),:);
 end
 
-
+%final result should be matrix with index association between regions to be
+%merged based on slope and area ratio
 function [image, regionAssociation] = removeOutliers(colSlope, colAreaRatio, minDistsIx, image, stats)
-
 % Function Name:
 %    removeOutliers
 %
@@ -196,11 +256,8 @@ function [image, regionAssociation] = removeOutliers(colSlope, colAreaRatio, min
 % Output:
 %   regionAssociation : mapping reflection which isv the region belong to
 %   image             : image without outlier
-    
-    %not sure if we need all of them , keeping as backup
-    regionAssociation = [];
-    newColSlope = [];
-    newColAreaRatio = [];
+
+    regionAssociation = []; newColSlope = []; newColAreaRatio = [];
     
     for i = 1 : size(colSlope,1)
         slope_1 = colSlope(i,1);
@@ -261,7 +318,6 @@ end
 
 
 function [colAngle, colArea] = findAngleRatio(mat, stats)
-
 % Function Name:
 %    findAngleRatio
 %
@@ -276,10 +332,7 @@ function [colAngle, colArea] = findAngleRatio(mat, stats)
 %   colAngle : angle of region to merged
 %   colArea : area of each region
 
-
-    colAngle = [];
-    colArea = [];
-
+colAngle = []; colArea = [];
     for region = 1 : size(mat,1)
         first  = stats(region).Centroid; 
         firstA  = stats(region).Area; 

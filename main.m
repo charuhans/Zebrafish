@@ -16,7 +16,8 @@ function main(pathBW, pathWholeBW, pathData)
 %  mkdir('isvDA90BW');
 %  mkdir('isvDAAll');
 %  mkdir('theISV');
-%   mkdir('isvBWHole');
+%  mkdir('isvBWHole');
+%  mkdir('initialSegBW');
  currentFolder = pwd;
  
  saveAnatomyData = strcat(currentFolder,'\', 'pathAnatomyData');
@@ -44,5 +45,22 @@ cd(currentFolder);
 computeFeatures(saveISVBW);
 cd(currentFolder);
 
-%  cd(currentFolder);
+% cd(currentFolder);
+% new main
+% intialROIExtraction
+% anatomyExtraction1(pathData, pathWholeBW, saveAnatomyData, saveAnatomyBW);  
+% cd(currentFolder);   
+% ROI(saveAnatomyData, saveAnatomyBW, saveIsolateData, saveIsolateBW)
+% cd(currentFolder);
+% tailExtraction(saveIsolateData, saveInitialSegBW, saveISVData, saveSkeleton);
+% cd(currentFolder);
+% caudalVein(saveSkeleton, saveIsolateData, pathBW, saveCV);
+% cd(currentFolder);
+% cleanImage(saveSkeleton, saveISVData, saveISVClean, saveISV);
+% cd(currentFolder);
+% merge( saveISV, saveISVBW);
+% cd(currentFolder);
+% computeFeatures(saveISVBW);
+% cd(currentFolder);
+% [success] = ChartData(ResultFile, excelCellIndexSheet1, header)
 end

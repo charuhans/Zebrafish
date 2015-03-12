@@ -1,9 +1,9 @@
-function [Lambda1,Lambda2,Ix,Iy, responseY, noResponse]=eig2image(Dxx,Dxy,Dyy)
+function [Lambda1,Lambda2,Ix,Iy, responseY, responseX]=eig2image(Dxx,Dxy,Dyy)
 % This function eig2image calculates the eigen values from the
 % hessian matrix, sorted by abs value. And gives the direction
 % of the ridge (eigenvector smallest eigenvalue) .
 % 
-% [Lambda1,Lambda2,Ix,Iy]=eig2image(Dxx,Dxy,Dyy)
+% [Lambda1,Lambda2,Ix,Iy ,responseY, responseX]=eig2image(Dxx,Dxy,Dyy)
 %
 
 %
@@ -15,7 +15,6 @@ Dxx = im2double(Dxx);
 Dxy = im2double(Dxy);
 Dyy = im2double(Dyy);
 
-responseY = [];
 ThetaInDegrees = [];
 % Compute the eigenvectors of J, v1 and v2
 tmp = ((Dxx - Dyy).^2 + 4*Dxy.^2);
@@ -53,7 +52,7 @@ ThetaInDegrees = computeAngle(Ix, Iy);
 [ responseY] = computeResponse(ThetaInDegrees, Lambda1);
 
 %ThetaInDegrees1 = computeAngle(I1x, I1y);
-%responseX = computeResponseX(ThetaInDegrees1, Lambda1);
+responseX = computeResponseX(ThetaInDegrees, Lambda1);
 
 
 end
@@ -78,9 +77,10 @@ function [response] = computeResponse(ThetaInDegrees, Lambda1)
     
     for x = 1:size(Lambda1,2)
         for y  = 1:size(Lambda1,1)
-           if(Lambda1(y,x) > 5 && (ThetaInDegrees(y, x) > 30 && ThetaInDegrees(y, x) < 135))
+            if((Lambda1(y,x) > 0  && ThetaInDegrees(y, x) > 45 && ThetaInDegrees(y, x) < 135))
+           %if(Lambda1(y,x) > 5 && (ThetaInDegrees(y, x) > 30 && ThetaInDegrees(y, x) < 135))
            %if(Lambda1(y,x) >10 && (ThetaInDegrees(y, x) < 45 || ThetaInDegrees(y, x) > 150))
-                response(y,x) = (Lambda1(y,x));
+                response(y,x) = Lambda1(y,x);
            else
                 response(y,x) = 0;  
                     
@@ -95,7 +95,7 @@ function response = computeResponseX(ThetaInDegrees, Lambda1)
     
     for x = 1:size(Lambda1,2)
         for y  = 1:size(Lambda1,1)
-           if(Lambda1(y,x) > 4 && (ThetaInDegrees(y, x) < 20 || ThetaInDegrees(y, x) > 160))
+           if(Lambda1(y,x) > 0 && (ThetaInDegrees(y, x) < 45 || ThetaInDegrees(y, x) > 135))
                 response(y,x) = (Lambda1(y,x));
            else
                 response(y,x) = 0;  

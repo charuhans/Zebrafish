@@ -1,19 +1,16 @@
 
 
-function [outImY,whatScale] = FrangiFilter2D(I, options)
-% This function FRANGIFILTER2D uses the eigenvectors of the Hessian to
-% compute the likeliness of an image region to vessels, according
-% to the method described by Frangi:2001 (Chapter 2).
+function [outImY, outIm, outImX] = Filter2D(I, options)
+% This function Filter2D uses the eigenvectors of the Hessian to
+% compute the likeliness of an image region to vessels
 %
-% [J,Scale,Direction] = FrangiFilter2D(I, Options)
+% [J,Scale,Direction] = Filter2D(I, Options)
 %
 % inputs,
 %   I : The input image (vessel image)
 %   Options : Struct with input options,
-%       .FrangiScaleRange : The range of sigmas used, default [1 8]
-%       .FrangiScaleRatio : Step size between sigmas, default 2
-%       .FrangiBetaOne : Frangi correction constant, default 0.5
-%       .FrangiBetaTwo : Frangi correction constant, default 15
+%       .ScaleRangeY : The range of sigmas used, default [1 8]
+%       .ScaleRatio : Step size between sigmas, default 2
 %       .BlackWhite : Detect black ridges (default) set to true, for
 %                       white ridges set to false.
 %       .verbose : Show debug information, default true
@@ -26,7 +23,7 @@ function [outImY,whatScale] = FrangiFilter2D(I, options)
 %
 
 
-defaultoptions = struct('ScaleRangeY', [1 3], 'ScaleRangeX', [1 4], 'ScaleRatio', 0.5, 'verbose',true,'BlackWhite',false);
+defaultoptions = struct('ScaleRange', [0 3], 'ScaleRatio', 0.5, 'verbose',true,'BlackWhite',false);
 
 % Process inputs
 if(~exist('options','var')), 
@@ -41,7 +38,7 @@ else
     end
 end
 I = imcomplement(I);
-sigmas=options.ScaleRangeY(1):options.ScaleRatio:options.ScaleRangeY(2);
+sigmas=options.ScaleRange(1):options.ScaleRatio:options.ScaleRange(2);
 sigmas = sort(sigmas, 'ascend');
 
 
@@ -63,25 +60,28 @@ for i = 1:length(sigmas),
     Dyy = (sigmas(i)^2)*Dyy;
    
     % Calculate (abs sorted) eigenvalues and vectors
-    [Lambda2,Lambda1,Ix,Iy, responseY]=eig2image(Dxx,Dxy,Dyy);
+    [Lambda1,Lambda2,Ix,Iy, responseY, responseX]=eig2image(Dxx,Dxy,Dyy);
 
 
    
     % store the results in 3D matrices
-    %ALLfilteredX(:,:,i) = responseX;
+     ALLfilteredX(:,:,i) = responseX;
      ALLfilteredY(:,:,i) = responseY;
+     ALLResponse(:,:,i) = Lambda1;
 end
 
 % Return for every pixel the value of the scale(sigma) with the maximum 
 % output pixel value
 if length(sigmas) > 1,
-    %[outImX,whatScale] = max(ALLfilteredX,[],3);
+    [outImX,whatScale] = max(ALLfilteredX,[],3);
     [outImY,whatScale] = max(ALLfilteredY(:,:,:),[],3);
+    [outIm] = max(ALLResponse(:,:,:),[],3);
 %     [r, c] = find(outImY == 255);
 %     idx = sub2ind(size(outImY), r,c);
 %     outImY(idx)= 0;
-    %outImX = reshape(outImX,size(I));
+    outImX = reshape(outImX,size(I));
     outImY = reshape(outImY,size(I));
+    outIm = reshape(outIm,size(I));
     if(nargout>1)
         whatScale = reshape(whatScale,size(I));
     end
@@ -91,6 +91,7 @@ if length(sigmas) > 1,
 else
     %outImX = reshape(ALLfilteredX,size(I));
     outImY = reshape(ALLfilteredY,size(I));
+    outIm = reshape(ALLResponse,size(I));
     if(nargout>1)
             whatScale = ones(size(I));
     end

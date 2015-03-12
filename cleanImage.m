@@ -1,30 +1,52 @@
-function cleanImage(pathSkelData, pathData, saveDataCleanPath, saveDataPath)   
+function cleanImage(pathSkelData, pathData, saveDataCleanPath) 
+% Function Name:
+%    cleanImage
+%
+% Description:
+%   This function removes head and tail region
+% 
+%
+% Inputs:
+%   pathData            : ISV image path
+%   pathSkelData        : Path to head + tail skeleton
+%   saveDataCleanPath   : Path to save isv clean removing head and tail
+%   saveDataPath        : Path to save images for ISV all
+
+    if nargin < 3
+        error('Need path as an argument');
+    end 
     warning('off','all');
     warning;
     close all;
-     cd(pathSkelData);
-    imagefiles = dir('*.tif');   
-    nfiles = length(imagefiles);    % Number of files found
+    imagefiles  = dir([pathSkelData '*.tif']);      
+    nfiles = length(imagefiles); 
+    
+    if nfiles < 1
+         disp('Number of files found is 0');
+         disp('Check if file xtension is tif');
+         disp('Check if path for data files is correct. Path given:' + pathSkelData);
+         error('Program cannot be executed');
+    end
     
     for ii=1:nfiles
         % read original gray image
-       currentfilename = imagefiles(ii).name;
-       skelImage = imread(currentfilename);
-       fileName = strcat(pathData, '\', currentfilename);
+       currentfilename = strcat(pathSkelData, '\', imagefiles(ii).name);     
+       skelImage = imread(currentfilename);   
+       fileName = strcat(pathData, '\', imagefiles(ii).name);
        dataImage = imread(fileName);
        clean = remove(skelImage, dataImage);
        
-       newImageWrite = strcat(saveDataCleanPath, '\', currentfilename);
+       newImageWrite = strcat(saveDataCleanPath, '\', imagefiles(ii).name);
       
        imwrite(clean,newImageWrite,'tif','Compression','none');
        
-       [outImY,whatScale] = FrangiFilter2D((clean));
+       %%[outImY,~] = Filter2D((clean));
        
-       newImageWrite = strcat(saveDataPath, '\', currentfilename);
-       A = im2double(outImY);
-       A=A-min(A(:)); % shift data such that the smallest element of A is 0
-       A=A/max(A(:)); % normalize the shifted data to 1 
-       imwrite(A,newImageWrite,'png', 'BitDepth', 16);
+       %%newImageWrite = strcat(saveDataPath, '\', imagefiles(ii).name);
+       %A = im2double(outImY);  A=A-min(A(:)); A=A/max(A(:)); 
+       %%A = uint8(255*mat2gray(outImY));
+       %%imwrite(A,newImageWrite,'tif','Compression','none');  
+       %imwrite(A,newImageWrite,'png', 'BitDepth', 16);
     end
     
 end
@@ -32,6 +54,18 @@ end
 
 
 function image = remove(img, realImg)
+% Function Name:
+%    remove
+%
+% Description:
+%   This function removes the head region based on skeleton
+% 
+%
+% Inputs:
+%   img      : skeleton image
+%   realImg  : Path to image
+% Output:
+%   newImage: image without head
 
     whitePixelArray_up = [];
     whitePixelArray_down = [];
@@ -40,9 +74,7 @@ function image = remove(img, realImg)
     for y = 1:size(img,2)
         for x  = 1:size(img,1)
             val = img(x,y);
-            if(val == 0)
-               %whitePixelArray_up(:,1) = x;
-               %whitePixelArray_up(:,2) = y;   
+            if(val == 0) 
                whitePixelArray_up = [ whitePixelArray_up; x y 0];
                break;
             end
@@ -76,8 +108,7 @@ function image = remove(img, realImg)
     if(max_up > max_down)
         %we need to clean the top side
          x_index = find(whitePixelArray_up(:,3)== max_up);
-         XY = [whitePixelArray_up(x_index,1) whitePixelArray_up(x_index,2)];
-         
+         XY = [whitePixelArray_up(x_index,1) whitePixelArray_up(x_index,2)];         
          isTop = 1;
     else
         %we need to clean the down side
@@ -124,33 +155,43 @@ function image = remove(img, realImg)
           end
         end
     end
-    
-    
         
     image = cleanRestOftheImage(realImg, whitePixelArray_up, whitePixelArray_down, isTop);
     
 end
 
 
-function [realImg] =   cleanRestOftheImage(realImg, whitePixelArray_up, whitePixelArray_down, isTop)
-val = fix(size(whitePixelArray_down,1)/2);
+function [realImg] = cleanRestOftheImage(realImg, whitePixelArray_up, whitePixelArray_down, isTop)
+% Function Name:
+%    cleanRestOftheImage
+%
+% Description:
+%   Compute euclidean distance between pair of array element
+% 
+%
+% Inputs:
+%   isTop  : elemnts of image
+% Output
+%   arr  : elemnts of image with airwise diatance
 
-DirVector1=[whitePixelArray_down(val,1) whitePixelArray_down(val,2)]-[whitePixelArray_down(val + 2,1) whitePixelArray_down(val + 2,2)];
-DirVector2=[1,0]-[3,0];
-angle =acos( dot(DirVector1,DirVector2)/norm(DirVector1)/norm(DirVector2) )*180/pi; 
+    val = fix(size(whitePixelArray_down,1)/2);
+
+    DirVector1=[whitePixelArray_down(val,1) whitePixelArray_down(val,2)]-[whitePixelArray_down(val + 2,1) whitePixelArray_down(val + 2,2)];
+    DirVector2=[1,0]-[3,0];
+    angle =acos( dot(DirVector1,DirVector2)/norm(DirVector1)/norm(DirVector2) )*180/pi; 
 
     if(isTop == 1)
-        
+
         for i = 1: size(whitePixelArray_up,1)
            x =  whitePixelArray_up(i,1);
            y = whitePixelArray_up(i,2);
-           
+
            for j = 1 : x 
                realImg(j,y) = 0; %or 255 whatever is correct
            end
-           
+
         end
-        
+
         for x_dim =1: x 
           for y_dim = y:size(realImg, 2)
               realImg(x_dim,y_dim) = 0;
@@ -160,26 +201,33 @@ angle =acos( dot(DirVector1,DirVector2)/norm(DirVector1)/norm(DirVector2) )*180/
         for i = 1: size(whitePixelArray_down,1)
            x =  whitePixelArray_down(i,1);
            y = whitePixelArray_down(i,2);
-           
+
            for j =  x : size(realImg,1)
                realImg(j,y) = 0; %or 255 whatever is correct
            end
-           
+
         end
-        
+
         for x_dim = x : size(realImg,1)
           for y_dim = y:size(realImg, 2)
               realImg(x_dim,y_dim) = 0;
           end
         end
     end
-    
-    
-    
-    %realImg = imrotate(realImg,90 -angle);
 end
     
 function [arr] = distance(arr)
+% Function Name:
+%    distance
+%
+% Description:
+%   Compute euclidean distance between pair of array element
+% 
+%
+% Inputs:
+%   arr  : elemnts of image
+% Output
+%   arr  : elemnts of image with airwise diatance
 
 for x = 2 : size(arr,1)
    Array = [arr(x-1,1) arr(x-1, 2); arr(x,1) arr(x, 2)];
