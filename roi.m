@@ -31,9 +31,15 @@ function ROI(saveAnatomyData, saveAnatomyBW, saveIsolateData, saveIsolateBW)
     for idx = 1:nfiles
         currentfilename = strcat(saveAnatomyBW, '\', imagefiles(idx).name);     
         currentimage = imread(currentfilename);
+        if(~isValidImage(currentimage))
+            continue;
+        end
         newFileName = strcat(saveAnatomyData, '\', imagefiles(idx).name);
 
         newImage = imread(newFileName);
+        if(~isValidImage(newImage))
+            continue;
+        end
         BW = im2bw(currentimage,0.01);
         stats = regionprops(BW, 'Area', 'PixelIdxList', 'PixelList', 'BoundingBox', 'Orientation');
         width = stats(1).BoundingBox(1,3);
@@ -71,6 +77,15 @@ function ROI(saveAnatomyData, saveAnatomyBW, saveIsolateData, saveIsolateBW)
         
         imwrite(subImageBW,newImageNameWriteBW,'tif','Compression','none');
         imwrite(subImage,newImageNameWrite,'tif','Compression','none');
+    end
+end
+
+function valid = isValidImage(img)
+
+    if(isempty(img) ||  size(find(img == 255),1) == (size(img,1) * size(img,2)))
+         valid = false;
+    else
+        valid = true;
     end
 end
 

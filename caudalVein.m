@@ -31,14 +31,19 @@ function caudalVein(skelFolder, saveIsolateData, initialSegBW, saveCV)
     
     for ii=1:nfiles
         % read original gray image
-        currentfilename = strcat(skelFolder, '\', imagefiles(ii).name);     
-        skelImage = imread(currentfilename);    
-        %currentfilename = imagefiles(ii).name;
-        %skelImage = imread(currentfilename);
+        currentfilename = strcat(skelFolder, '\', imagefiles(ii).name);  
+        imagefiles(ii).name
+        skelImage = imread(currentfilename);   
+        if(~isValidImage(skelImage))
+            continue;
+        end
         fileName = strcat( saveIsolateData, '\', imagefiles(ii).name);
         dataImage = imread(fileName);
         fileNameBW = strcat(initialSegBW, '\', imagefiles(ii).name);
         BWImage = imread(fileNameBW);
+        if(~isValidImage(BWImage))
+            continue;
+        end
         %fprintf('image name: %s \n', imagefiles(ii).name);
         newDatatImage = dataImage;
         newDatatImage(~BWImage) = 0;
@@ -49,6 +54,17 @@ function caudalVein(skelFolder, saveIsolateData, initialSegBW, saveCV)
     end
 
 end
+
+
+function valid = isValidImage(img)
+
+    if(isempty(img) ||  size(find(img == 255),1) == (size(img,1) * size(img,2)))
+         valid = false;
+    else
+        valid = true;
+    end
+end
+
 
 function newImage = remove(img, realImg)
 % Function Name:
@@ -152,7 +168,6 @@ function newImage = remove(img, realImg)
             end
         end
     end
-
     [bwImg, realImg] = bwlargestblob(realImg,4);
     index = findIndex(bwImg, isTop, isOrigin);
 
@@ -189,7 +204,7 @@ function newImage = remove(img, realImg)
         newDimenssions = [transforedLocation, 0, size(realImg,2) - transforedLocation, size(realImg,1)];
         newImage = imcrop(realImg, newDimenssions);
     end
-
+  
 end
 
 function [arr] = distance(arr)
@@ -241,15 +256,17 @@ function [bwWholeSubImage, dataImg] = bwlargestblob(im,connectivity)
     [~, largestBlobNo] = max(sizeBlob);
 
     outim = zeros(size(im),'uint8');
-    outim(imlabel==largestBlobNo) = 1;
+    if(~isempty(largestBlobNo))
+        outim(imlabel==largestBlobNo) = 1;
+    end
     stats = regionprops(outim,'BoundingBox');
     newDimenssions = [stats(1).BoundingBox(1,1)  , stats(1).BoundingBox(1,2) , stats(1).BoundingBox(1,3), stats(1).BoundingBox(1,4)];
     % crop wholeBW image
-
     % crop the BWImage
     bwWholeSubImage = imcrop(outim, newDimenssions);
     dataImg = imcrop(dataImg, newDimenssions);
-    bwWholeSubImage = 255*bwWholeSubImage;
+    bwWholeSubImage = 255*bwWholeSubImage;      
+    
     end
 
 function index =  findIndex(im, isTop, isOrigin)

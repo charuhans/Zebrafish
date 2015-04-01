@@ -3,7 +3,7 @@ function TailISVExtraction(saveIsolateData, initialSegBW, saveISVData, saveSkele
 %    TailExtraction
 %
 % Description:
-%   This function does the tail segmentation and computes ISV skeleton 
+%   This function does the tail segmentation and computes skeleton 
 % 
 % Pre requisite:
 %   Expects MIJI in path of matlab
@@ -33,18 +33,18 @@ function TailISVExtraction(saveIsolateData, initialSegBW, saveISVData, saveSkele
     for idx = 1:nfiles        
         dataName = strcat(saveIsolateData, imagefiles(idx).name);
         MIJ.run('Open...', strcat('path=[', dataName, ']'));
-        MIJ.run('Enhance Contrast...', 'saturated=[15] normalize');
+        MIJ.run('Enhance Contrast...', 'saturated=[10] normalize');
         MIJ.run('Gaussian Blur...', 'sigma=[6]');
         MIJ.run('Auto Threshold', 'method=Intermodes background=Light calculate black');
         MIJ.run('Convert to Mask');
-	    MIJ.run('Analyze Particles...', 'size=150-Infinity circularity=0.00-1.00 show=Masks');
+	    MIJ.run('Analyze Particles...', 'size=250-Infinity circularity=0.00-1.00 show=Masks');
         MIJ.run('Fill Holes');
         fileName = strcat(initialSegBW, imagefiles(idx).name);
         image = MIJ.getCurrentImage();
         image = uint8(255*mat2gray(image));
         imwrite(image,fileName,'tif','Compression','none');
         
-        MIJ.run('Smooth');
+        MIJ.run('Gaussian Blur...', 'sigma=[2]');
 		MIJ.run('Skeletonize (2D/3D)');
         MIJ.run('Invert');
         fileNameSkel = strcat(saveSkeleton, imagefiles(idx).name);
@@ -56,7 +56,8 @@ function TailISVExtraction(saveIsolateData, initialSegBW, saveISVData, saveSkele
         MIJ.run('Close');        
         
         MIJ.run('Open...', strcat('path=[', dataName, ']'));
-        MIJ.run('Enhance Contrast...', 'saturated=[15] normalize');
+        % 10 before
+        MIJ.run('Enhance Contrast...', 'saturated=[4] normalize');
         image = MIJ.getCurrentImage();
         image = uint8(255*mat2gray(image));
         imwrite(image,dataName,'tif','Compression','none');

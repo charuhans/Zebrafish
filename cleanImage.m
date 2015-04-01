@@ -31,9 +31,15 @@ function cleanImage(pathSkelData, pathData, saveDataCleanPath)
     for ii=1:nfiles
         % read original gray image
        currentfilename = strcat(pathSkelData, '\', imagefiles(ii).name);     
-       skelImage = imread(currentfilename);   
+       skelImage = imread(currentfilename);  
+       if(~isValidImage(skelImage))
+            continue;
+       end
        fileName = strcat(pathData, '\', imagefiles(ii).name);
        dataImage = imread(fileName);
+       if(~isValidImage(dataImage))
+            continue;
+       end
        clean = remove(skelImage, dataImage);
        
        newImageWrite = strcat(saveDataCleanPath, '\', imagefiles(ii).name);
@@ -51,6 +57,15 @@ function cleanImage(pathSkelData, pathData, saveDataCleanPath)
     
 end
 
+
+function valid = isValidImage(img)
+
+    if(isempty(img) ||  size(find(img == 255),1) == (size(img,1) * size(img,2)))
+         valid = false;
+    else
+        valid = true;
+    end
+end
 
 
 function image = remove(img, realImg)

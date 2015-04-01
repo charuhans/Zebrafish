@@ -23,7 +23,7 @@ function [outImY, outIm, outImX] = Filter2D(I, options)
 %
 
 
-defaultoptions = struct('ScaleRange', [0 3], 'ScaleRatio', 0.5, 'verbose',true,'BlackWhite',false);
+defaultoptions = struct('ScaleRange', [0 3], 'ScaleRatio', 0.5, 'verbose',false,'BlackWhite',false);
 
 % Process inputs
 if(~exist('options','var')), 
@@ -60,7 +60,7 @@ for i = 1:length(sigmas),
     Dyy = (sigmas(i)^2)*Dyy;
    
     % Calculate (abs sorted) eigenvalues and vectors
-    [Lambda1,Lambda2,Ix,Iy, responseY, responseX]=eig2image(Dxx,Dxy,Dyy);
+    [Lambda1,Lambda2,Ix,Iy, responseY, responseX] = eig2image(Dxx,Dxy,Dyy);
 
 
    
@@ -73,21 +73,18 @@ end
 % Return for every pixel the value of the scale(sigma) with the maximum 
 % output pixel value
 if length(sigmas) > 1,
-    [outImX,whatScale] = max(ALLfilteredX,[],3);
+    [outImX,whatScale1] = max(ALLfilteredX,[],3);
     [outImY,whatScale] = max(ALLfilteredY(:,:,:),[],3);
     [outIm] = max(ALLResponse(:,:,:),[],3);
-%     [r, c] = find(outImY == 255);
-%     idx = sub2ind(size(outImY), r,c);
-%     outImY(idx)= 0;
     outImX = reshape(outImX,size(I));
     outImY = reshape(outImY,size(I));
     outIm = reshape(outIm,size(I));
     if(nargout>1)
         whatScale = reshape(whatScale,size(I));
     end
-    %if(nargout>2)
-        %Direction = reshape(ALLangles((1:numel(I))'+(whatScale(:)-1)*numel(I)),size(I));
-    %end
+%     if(nargout>2)
+%         Direction = reshape(ALLangles((1:numel(I))'+(whatScale(:)-1)*numel(I)),size(I));
+%     end
 else
     %outImX = reshape(ALLfilteredX,size(I));
     outImY = reshape(ALLfilteredY,size(I));
@@ -95,8 +92,8 @@ else
     if(nargout>1)
             whatScale = ones(size(I));
     end
-    %if(nargout>2)
-        %Direction = reshape(ALLangles,size(I));
-    %end
+%     if(nargout>2)
+%         Direction = reshape(ALLangles,size(I));
+%     end
 end
 end

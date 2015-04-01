@@ -124,8 +124,14 @@ function [allResult, subNames, average] = processing(list, names, pathISV, pathI
     for ii=1:size(list,1)        
         currentfilename = strcat(pathISV, '\\', names{list(ii)});
         image = imread(currentfilename);        
+        if(~isValidImage(image))
+            continue;
+        end
         currentfilename = strcat(pathISVSkeleton, '\\', names{list(ii)});
         skelImage = imread(currentfilename);
+        if(~isValidImage(skelImage))
+            continue;
+        end
         [result] = propertiesISV(image, skelImage);
         subNames{ii} = names{list(ii)};
         allResult = [allResult; result];
@@ -133,6 +139,14 @@ function [allResult, subNames, average] = processing(list, names, pathISV, pathI
     average = mean(allResult,1);
 end
 
+function valid = isValidImage(img)
+
+    if(isempty(img) ||  size(find(img == 255),1) == (size(img,1) * size(img,2)))
+         valid = false;
+    else
+        valid = true;
+    end
+end
 
 function [result] = propertiesISV(dataImage, skeletonImage)
 % Function Name:
@@ -195,7 +209,7 @@ function [result] = propertiesISV(dataImage, skeletonImage)
     if(~isempty(stats))
         result = [minDist/length(stats) areaCol/length(stats) areaColSkel/length(statsSkel) areaCol length(stats)];
     else
-        result = [0 0 0 0 0 0];
+        result = [0 0 0 0 0];
     end
 
 end

@@ -114,6 +114,9 @@ function [allResult, subNames, average] = processing(list, names, path, saveFold
     for ii=1:size(list,1)
         currentfilename = strcat(path, '\\', names{list(ii)});
         image = imread(currentfilename);
+        if(~isValidImage(image))
+            continue;
+        end
         G = fspecial('gaussian',[3 3],4);
         %# Filter it
         image = imfilter(image,G,'same');
@@ -125,6 +128,15 @@ function [allResult, subNames, average] = processing(list, names, path, saveFold
         imwrite(binary,newImageWrite,'tif','Compression','none');
     end
     average = mean(allResult,1);
+end
+
+function valid = isValidImage(img)
+
+    if(isempty(img) ||  size(find(img == 255),1) == (size(img,1) * size(img,2)))
+         valid = false;
+    else
+        valid = true;
+    end
 end
 
 function [binary1, result] = propertiesCV(dataImage)

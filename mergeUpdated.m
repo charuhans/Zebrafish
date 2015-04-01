@@ -30,7 +30,12 @@ function mergeUpdated(saveCleanISV, saveISV, saveISVX, saveISVAll, saveISVBW)
     for ii=1:nfiles
         colDist = []; colAngle = []; colArea = []; minDists = []; minDistsIx = [];
         currentfilename = strcat(saveCleanISV, '\', imagefiles(ii).name);     
-        dataImage = imread(currentfilename);        
+        dataImage = imread(currentfilename);  
+        imagefiles(ii).name
+        if(~isValidImage(dataImage))
+            continue;
+        end
+        
         [outImY, outIm, outImX] = Filter2D(dataImage);
         
         currentfilenameISV = strcat(saveISV, '\', imagefiles(ii).name);  
@@ -55,30 +60,45 @@ function mergeUpdated(saveCleanISV, saveISV, saveISVX, saveISVAll, saveISVBW)
                 
         % remove small elements
         bwY = bwareaopen(bwY, 20);
-        bwX = bwareaopen(bwX, 400);
+        bwX = bwareaopen(bwX, 500);
         bwAll = bwareaopen(bwAll, 20);
        
         % apply open/close operation on bwX
-        seLine = strel('line',12,5);
+        seLine = strel('line',10,5);
         bwXOpen = imopen(bwX,seLine);
         
-        seLine = strel('line',12,5);
+        seLine = strel('line',5,5);
         bwXClose = imclose(bwXOpen,seLine);
+        bwXClose = imfill(bwXClose, 'holes');
         bwXClose = bwareaopen(bwXClose, 300);
        
         % remove region from bwY that are in bwX 
-       [labeledImage, ~] = bwlabel(bwXClose, 8); 
-       stats = regionprops(labeledImage, 'All');
-       for region = 1 : length(stats)
-        bwY(labeledImage == region) = 0;           
+       [labeledImage, totalLabels] = bwlabel(bwXClose, 8); 
+       %[imlabel totalLabels] = bwlabel(im,connectivity);
+       sizeBlob = zeros(1,totalLabels);
+       for i=1:totalLabels,
+           sizeBlob(i) = length(find(labeledImage==i));
        end
        
+       [~, largestBlobNo] = max(sizeBlob);
+
+       outim = zeros(size(bwXClose),'uint8');
+       if(~isempty(largestBlobNo))
+           outim(labeledImage==largestBlobNo) = 1;
+       end
+       
+       stats = regionprops(outim, 'All');
+       for region = 1 : length(stats)
+        bwY(outim == region) = 0;           
+       end
+       
+       bwY = bwareaopen(bwY, 50);
        % apply close operation on bwX
-       seLine = strel('line',8,90);
+       seLine = strel('line',15,100);
        bwYClose = imclose(bwY,seLine);
        
        % apply close operation on bwAll
-       seLine = strel('line',5,90);
+       seLine = strel('line',5,100);
        bwAllClose = imclose(bwAll,seLine);
        
        bw = and(bwYClose, bwAllClose);
@@ -118,8 +138,7 @@ function mergeUpdated(saveCleanISV, saveISV, saveISVX, saveISVAll, saveISVBW)
 
       % among obtained centeroid, find slope
       % if slope is  closerto 1, merge regions
-
-      [minDists,minDistsIx] = sort(colDist,2) ;
+      [minDists,minDistsIx] = sort(colDist,2);
           
       if(size(colDist,2) > 3)
           minDists = minDists(:, 2:4);
@@ -147,6 +166,15 @@ function mergeUpdated(saveCleanISV, saveISV, saveISVX, saveISVAll, saveISVBW)
        end
        newImageWrite = strcat(saveISVBW, '\', imagefiles(ii).name);
        imwrite(image,newImageWrite,'tif','Compression','none');
+    end
+end
+
+function valid = isValidImage(img)
+
+    if(isempty(img) ||  size(find(img == 255),1) == (size(img,1) * size(img,2)))
+         valid = false;
+    else
+        valid = true;
     end
 end
 

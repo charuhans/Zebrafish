@@ -33,10 +33,16 @@ function AnatomyExtraction1(pathData, saveWholeBW, saveAnatomyData, saveAnatomyB
     for idx=1:nfiles
        % read original gray image
        dataName = strcat(pathData, '\', imagefiles(idx).name);     
-       dataImage = imread(dataName);        
+       dataImage = imread(dataName);
+       if(~isValidImage(dataImage))
+            continue;
+       end
        % read whole binary image
        fileName = strcat(saveWholeBW, '\', imagefiles(idx).name);
-       bwWhole = imread(fileName);            
+       bwWhole = imread(fileName);
+       if(~isValidImage(bwWhole))
+            continue;
+       end
        bw = im2bw(bwWhole,0.01);
        stats = regionprops(bw, 'Area', 'PixelIdxList', 'PixelList', 'BoundingBox', 'Orientation');
        
@@ -56,6 +62,15 @@ function AnatomyExtraction1(pathData, saveWholeBW, saveAnatomyData, saveAnatomyB
        
     end
     
+end
+
+function valid = isValidImage(img)
+
+    if(isempty(img) ||  size(find(img == 255),1) == (size(img,1) * size(img,2)))
+         valid = false;
+    else
+        valid = true;
+    end
 end
 
 

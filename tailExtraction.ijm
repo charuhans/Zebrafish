@@ -13,7 +13,7 @@ if (File.exists(dir1))
 	{
 	  	if (endsWith(list[i], ".tif")) 
 		{
-	    		open(dir1 + list[i]);
+	    	open(dir1 + list[i]);
 			run("Enhance Contrast...", "saturated=10 normalize");
 			saveAs("TIFF", dir1+list[i]);
 			close();
